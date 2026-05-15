@@ -15,6 +15,8 @@ const MIN_INTERVAL = 60;
 let snake, food, direction, nextDirection, score, highScore;
 let isRunning = false, isPaused = false;
 let lastTickTime = 0, animFrameId = null;
+let prevSnake = [], prevDirection = { x: 1, y: 0 };
+let drawT = 1;  // interpolation factor 0..1, 1 = no interpolation
 function getInterval() {
     return Math.max(MIN_INTERVAL, BASE_INTERVAL - score);
 }
@@ -26,6 +28,7 @@ function init() {
         { x: 8, y: 10 },
     ];
     direction = { x: 1, y: 0 };
+    prevDirection = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
     score = 0;
     isRunning = false;
@@ -33,6 +36,7 @@ function init() {
     highScore = parseInt(localStorage.getItem('snakeHighScore') || '0');
     highScoreEl.textContent = highScore;
     scoreEl.textContent = '0';
+    drawT = 1;
     spawnFood();
 }
 
@@ -46,7 +50,74 @@ function spawnFood() {
     } while (snake.some(s => s.x === pos.x && s.y === pos.y));
     food = pos;
 }
-function draw() {
+function getInterpolatedPos(i, t) {
+    const cur = snake[i];
+    let prev;
+    if (i === 0) {
+        prev = prevSnake.length > 0 ? prevSnake[0] : cur;
+    } else {
+        prev = i - 1 < prevSnake.length ? prevSnake[i - 1] : cur;
+    }
+    if (prev.x === cur.x && prev.y === cur.y) return cur;
+    if (Math.abs(cur.x - prev.x) > 1 || Math.abs(cur.y - prev.y) > 1) return cur;
+    return {
+        x: prev.x + (cur.x - prev.x) * t,
+        y: prev.y + (cur.y - prev.y) * t,
+    };
+}
+
+function drawSnakeSegment(idx, t) {
+    const pos = getInterpolatedPos(idx, t);
+    const x = pos.x * CELL_SIZE;
+    const y = pos.y * CELL_SIZE;
+    const padding = idx === 0 ? 1 : 2;
+    const radius = 4;
+
+    ctx.shadowColor = idx === 0 ? '#00d2ff' : '#3a7bd5';
+    ctx.shadowBlur = idx === 0 ? 12 : 5;
+
+    const gradient = ctx.createRadialGradient(
+        x + CELL_SIZE / 2, y + CELL_SIZE / 2, 1,
+        x + CELL_SIZE / 2, y + CELL_SIZE / 2, CELL_SIZE / 2
+    );
+    if (idx === 0) {
+        gradient.addColorStop(0, '#00fff5');
+        gradient.addColorStop(1, '#0088ff');
+    } else {
+        const ratio = 1 - idx / snake.length * 0.4;
+        gradient.addColorStop(0, `rgba(58, 200, 255, ${ratio})`);
+        gradient.addColorStop(1, `rgba(58, 123, 213, ${ratio})`);
+    }
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    roundRect(ctx, x + padding, y + padding, CELL_SIZE - padding * 2, CELL_SIZE - padding * 2, radius);
+    ctx.fill();
+
+    if (idx === 0) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff';
+        const eyeSize = 3;
+        const dir = direction;
+        let ex1, ey1, ex2, ey2;
+        if (dir.x === 1) {
+            ex1 = x + 13; ey1 = y + 5; ex2 = x + 13; ey2 = y + 12;
+        } else if (dir.x === -1) {
+            ex1 = x + 5; ey1 = y + 5; ex2 = x + 5; ey2 = y + 12;
+        } else if (dir.y === -1) {
+            ex1 = x + 5; ey1 = y + 5; ex2 = x + 12; ey2 = y + 5;
+        } else {
+            ex1 = x + 5; ey1 = y + 13; ex2 = x + 12; ey2 = y + 13;
+        }
+        ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(ex1 + dir.x, ey1 + dir.y, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex2 + dir.x, ey2 + dir.y, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+}
+function draw(t) {
+    drawT = t;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
@@ -70,54 +141,9 @@ function draw() {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    snake.forEach((segment, index) => {
-        const x = segment.x * CELL_SIZE;
-        const y = segment.y * CELL_SIZE;
-        const padding = index === 0 ? 1 : 2;
-        const radius = 4;
-
-        ctx.shadowColor = index === 0 ? '#00d2ff' : '#3a7bd5';
-        ctx.shadowBlur = index === 0 ? 12 : 5;
-
-        const gradient = ctx.createRadialGradient(
-            x + CELL_SIZE / 2, y + CELL_SIZE / 2, 1,
-            x + CELL_SIZE / 2, y + CELL_SIZE / 2, CELL_SIZE / 2
-        );
-        if (index === 0) {
-            gradient.addColorStop(0, '#00fff5');
-            gradient.addColorStop(1, '#0088ff');
-        } else {
-            const ratio = 1 - index / snake.length * 0.4;
-            gradient.addColorStop(0, `rgba(58, 200, 255, ${ratio})`);
-            gradient.addColorStop(1, `rgba(58, 123, 213, ${ratio})`);
-        }
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        roundRect(ctx, x + padding, y + padding, CELL_SIZE - padding * 2, CELL_SIZE - padding * 2, radius);
-        ctx.fill();
-
-        if (index === 0) {
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#fff';
-            const eyeSize = 3;
-            let ex1, ey1, ex2, ey2;
-            if (direction.x === 1) {
-                ex1 = x + 13; ey1 = y + 5; ex2 = x + 13; ey2 = y + 12;
-            } else if (direction.x === -1) {
-                ex1 = x + 5; ey1 = y + 5; ex2 = x + 5; ey2 = y + 12;
-            } else if (direction.y === -1) {
-                ex1 = x + 5; ey1 = y + 5; ex2 = x + 12; ey2 = y + 5;
-            } else {
-                ex1 = x + 5; ey1 = y + 13; ex2 = x + 12; ey2 = y + 13;
-            }
-            ctx.beginPath(); ctx.arc(ex1, ey1, eyeSize, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(ex2, ey2, eyeSize, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#111';
-            ctx.beginPath(); ctx.arc(ex1 + direction.x, ey1 + direction.y, 1.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(ex2 + direction.x, ey2 + direction.y, 1.5, 0, Math.PI * 2); ctx.fill();
-        }
-    });
+    for (let i = snake.length - 1; i >= 0; i--) {
+        drawSnakeSegment(i, t);
+    }
     ctx.shadowBlur = 0;
 }
 
@@ -133,6 +159,7 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
 }
+
 function gameTick() {
     direction = { ...nextDirection };
 
@@ -165,21 +192,26 @@ function gameTick() {
     } else {
         snake.pop();
     }
-
-    draw();
 }
-
 function gameLoop(timestamp) {
     if (!isRunning) return;
-    if (lastTickTime === 0) lastTickTime = timestamp;
+    if (lastTickTime === 0) {
+        lastTickTime = timestamp;
+        prevSnake = snake.map(s => ({ ...s }));
+    }
 
     const interval = getInterval();
-    if (timestamp - lastTickTime >= interval) {
+    const elapsed = timestamp - lastTickTime;
+
+    if (elapsed >= interval) {
+        prevSnake = snake.map(s => ({ ...s }));
         lastTickTime = timestamp;
         gameTick();
         if (!isRunning) return;
     }
 
+    const t = Math.min(elapsed / interval, 1);
+    draw(t);
     animFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -191,7 +223,7 @@ function gameOver() {
     overlayTitle.textContent = '游戏结束 💀';
     overlayMessage.textContent = `得分: ${score} | 最高分: ${highScore}`;
     restartBtn.textContent = '再来一局';
-    draw();
+    draw(1);
 }
 
 function startGame() {
@@ -200,7 +232,7 @@ function startGame() {
     overlayTitle.textContent = '🐍 贪吃蛇';
     overlayMessage.textContent = '按任意方向键开始游戏';
     restartBtn.textContent = '开始游戏';
-    draw();
+    draw(1);
 }
 
 function resumeGame() {
@@ -228,6 +260,7 @@ function togglePause() {
         restartBtn.textContent = '继续';
     }
 }
+
 function setDirection(newDir) {
     if (!isRunning) { resumeGame(); }
     if (isPaused) return;
@@ -246,14 +279,12 @@ document.addEventListener('keydown', (e) => {
         'a': { x: -1, y: 0 }, 'A': { x: -1, y: 0 },
         'd': { x: 1, y: 0 }, 'D': { x: 1, y: 0 },
     };
-
     if (e.key === ' ' || e.key === 'Escape') {
         e.preventDefault();
         if (!isRunning && !isPaused) resumeGame();
         else togglePause();
         return;
     }
-
     const dir = keyMap[e.key];
     if (dir) { e.preventDefault(); setDirection(dir); }
 });
@@ -281,17 +312,13 @@ restartBtn.addEventListener('click', () => {
 
 let touchStartX = 0, touchStartY = 0;
 canvas.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
+    const touch = e.touches[0]; touchStartX = touch.clientX; touchStartY = touch.clientY;
 });
 canvas.addEventListener('touchmove', (e) => e.preventDefault());
 canvas.addEventListener('touchend', (e) => {
     const touch = e.changedTouches[0];
-    const dx = touch.clientX - touchStartX;
-    const dy = touch.clientY - touchStartY;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
+    const dx = touch.clientX - touchStartX, dy = touch.clientY - touchStartY;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
     if (Math.max(absDx, absDy) < 20) return;
     if (absDx > absDy) setDirection({ x: dx > 0 ? 1 : -1, y: 0 });
     else setDirection({ x: 0, y: dy > 0 ? 1 : -1 });
