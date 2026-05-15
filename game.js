@@ -201,16 +201,16 @@ function gameLoop(timestamp) {
     }
 
     const interval = getInterval();
-    const elapsed = timestamp - lastTickTime;
 
-    if (elapsed >= interval) {
+
+    while (timestamp - lastTickTime >= interval) {
         prevSnake = snake.map(s => ({ ...s }));
-        lastTickTime = timestamp;
+        lastTickTime += interval;
         gameTick();
         if (!isRunning) return;
     }
 
-    const t = Math.min(elapsed / interval, 1);
+    const t = (timestamp - lastTickTime) / interval;
     draw(t);
     animFrameId = requestAnimationFrame(gameLoop);
 }
