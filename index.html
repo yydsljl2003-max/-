@@ -1,44 +1,43 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇 Snake Game</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>贪吃蛇 3D</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🐍 贪吃蛇</h1>
-            <div class="score-board">
-                <span>得分: <span id="score">0</span></span>
-                <span>最高分: <span id="highScore">0</span></span>
-            </div>
-        </div>
-        <div class="game-wrapper">
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
-            <div id="overlay" class="overlay">
-                <div class="overlay-content">
-                    <h2 id="overlayTitle">贪吃蛇</h2>
-                    <p id="overlayMessage">按任意方向键开始游戏</p>
-                    <button id="restartBtn" class="btn">开始游戏</button>
-                </div>
-            </div>
-        </div>
-        <div class="controls">
-            <p>方向键 / WASD 控制方向 | 空格暂停</p>
-            <div class="mobile-controls">
-                <div class="arrow-row">
-                    <button class="arrow-btn" data-dir="up">↑</button>
-                </div>
-                <div class="arrow-row">
-                    <button class="arrow-btn" data-dir="left">←</button>
-                    <button class="arrow-btn" data-dir="down">↓</button>
-                    <button class="arrow-btn" data-dir="right">→</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="game.js"></script>
+
+<div id="game3d"></div>
+
+<div class="hud-top">
+  <span class="hud-title">🐍 贪吃蛇 3D</span>
+  <span class="hud-scores"><span>得分 <b id="score">0</b></span><span>最高分 <b id="highScore">0</b></span></span>
+  <span class="hud-cam" id="camLabel">等距视角</span>
+</div>
+
+<div id="overlay" class="overlay">
+  <div class="overlay-content">
+    <h2 id="overlayTitle">🐍 贪吃蛇 3D</h2>
+    <p id="overlayMessage">按方向键开始游戏</p>
+    <button id="restartBtn" class="btn">开始游戏</button>
+    <div class="overlay-hints"><span>WASD/方向键 移动</span><span>空格 暂停</span><span>V 切换视角</span></div>
+  </div>
+</div>
+
+<div class="mobile-controls" id="mobileControls">
+  <div class="arrow-row"><button class="arrow-btn" data-dir="up">↑</button></div>
+  <div class="arrow-row">
+    <button class="arrow-btn" data-dir="left">←</button>
+    <button class="arrow-btn" data-dir="down">↓</button>
+    <button class="arrow-btn" data-dir="right">→</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+<script src="audio.js"></script>
+<script src="scene.js"></script>
+<script src="input.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
