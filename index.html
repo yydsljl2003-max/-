@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>贪吃蛇 3D</title>
+<meta name="description" content="3D 贪吃蛇游戏 — 四种模式、道具系统、连击倍率">
+<meta name="theme-color" content="#050515">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="贪吃蛇3D">
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -35,9 +41,23 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+<script src="core.js"></script>
+<script src="state.js"></script>
 <script src="audio.js"></script>
 <script src="scene.js"></script>
+<script src="hud.js"></script>
+<script src="menu.js"></script>
+<script src="settings.js"></script>
+<script src="leaderboard.js"></script>
+<script src="gamemodes.js"></script>
+<script src="combo.js"></script>
+<script src="powerups.js"></script>
 <script src="input.js"></script>
 <script src="game.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(function() {});
+}
+</script>
 </body>
 </html>
