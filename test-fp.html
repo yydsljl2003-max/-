@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>FP Control Test</title>
+<style>
+body{background:#111;color:#fff;font:16px monospace;padding:20px}
+.pass{color:#0f0}.fail{color:#f00}.info{color:#0af}
+#log{background:#1a1a1a;padding:12px;border-radius:8px;max-width:700px;white-space:pre-wrap;line-height:1.7}
+button{padding:8px 18px;margin:4px;font-size:14px;cursor:pointer}
+</style></head><body>
+<h2>First-Person Control Unit Test</h2>
+<p>Testing fpLeft/fpRight/fpForward/fpBackward in all 4 directions</p>
+<div id="log"></div>
+<p>Manual test: <button id="btnW">W (forward)</button> <button id="btnA">A (left)</button> <button id="btnD">D (right)</button> <button id="btnS">S (back)</button></p>
+<p>Current heading: <b id="dirDisplay">RIGHT</b> | Next: <b id="nextDisplay">RIGHT</b> | Mode: <b id="modeDisplay">ISO</b></p>
+<button id="btnV">V (toggle mode)</button>
+<br><p>Press arrow keys or WASD on this page too.</p>
+
+<script>
+// === EXACT COPY of game.js direction logic ===
+var log = document.getElementById('log');
+var dirDisp = document.getElementById('dirDisplay');
+var nextDisp = document.getElementById('nextDisplay');
+var modeDisp = document.getElementById('modeDisplay');
+
+var direction = { x: 1, y: 0 };
+var nextDirection = { x: 1, y: 0 };
+var camMode = 0;
+var CAM_NAMES = ['ISO', '3RD', 'FP'];
+
+function dirStr(d) {
+    if (d.x===1 && d.y===0) return '→ RIGHT';
+    if (d.x===-1 && d.y===0) return '← LEFT';
+    if (d.x===0 && d.y===-1) return '↑ UP';
+    if (d.x===0 && d.y===1) return '↓ DOWN';
+    return '('+d.x+','+d.y+')';
+}
+
+function dirsOpposite(a, b) { return a.x + b.x === 0 && a.y + b.y === 0; }
+
+function applyTurn(newDir) {
+    if (dirsOpposite(direction, newDir)) { log.textContent += 'BLOCKED (reverse)\n'; return 'BLOCKED'; }
+    nextDirection.x = newDir.x;
+    nextDirection.y = newDir.y;
+    log.textContent += '→ next=' + dirStr(nextDirection) + '\n';
+    return 'OK';
+}
+
+function tick() {
+    direction.x = nextDirection.x;
+    direction.y = nextDirection.y;
+    updateDisplay();
+}
+
+function fpForward()  { log.textContent += 'W(forward): ';  return applyTurn({ x: direction.x, y: direction.y }); }
+function fpLeft()     { log.textContent += 'A(left):    '; return applyTurn({ x: direction.y, y: -direction.x }); }
+function fpRight()    { log.textContent += 'D(right):   '; return applyTurn({ x: -direction.y, y: direction.x }); }
+function fpBackward() { log.textContent += 'S(back):    '; return applyTurn({ x: -direction.x, y: -direction.y }); }
+
+function absUp()    { log.textContent += '↑(abs): '; return applyTurn({ x: 0, y: -1 }); }
+function absDown()  { log.textContent += '↓(abs): '; return applyTurn({ x: 0, y: 1 }); }
+function absLeft()  { log.textContent += '←(abs): '; return applyTurn({ x: -1, y: 0 }); }
+function absRight() { log.textContent += '→(abs): '; return applyTurn({ x: 1, y: 0 }); }
+
+function updateDisplay() {
+    dirDisp.textContent = dirStr(direction);
+    nextDisp.textContent = dirStr(nextDirection);
+    modeDisp.textContent = CAM_NAMES[camMode];
+}
+
+function handleKey(key) {
+    if (key === 'camera') { camMode = (camMode + 1) % 3; log.textContent += 'MODE→' + CAM_NAMES[camMode] + '\n'; updateDisplay(); return; }
+
+    if (camMode === 2) {
+        if (key === 'ArrowUp'    || key === 'w' || key === 'W') { fpForward();  tick(); return; }
+        if (key === 'ArrowDown'  || key === 's' || key === 'S') { fpBackward(); tick(); return; }
+        if (key === 'ArrowLeft'  || key === 'a' || key === 'A') { fpLeft();     tick(); return; }
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') { fpRight();    tick(); return; }
+    } else {
+        if (key === 'ArrowUp'    || key === 'w' || key === 'W') { absUp();    tick(); return; }
+        if (key === 'ArrowDown'  || key === 's' || key === 'S') { absDown();  tick(); return; }
+        if (key === 'ArrowLeft'  || key === 'a' || key === 'A') { absLeft();  tick(); return; }
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') { absRight(); tick(); return; }
+    }
+}
+
+// === Run automated tests ===
+log.textContent = '=== Automated Tests ===\n';
+var tests = [
+    ['RIGHT→UP (A)',   function(){ direction={x:1,y:0};nextDirection={x:1,y:0}; var r=fpLeft();  tick(); return dirStr(direction); }, '↑ UP'],
+    ['UP→LEFT (A)',    function(){ direction={x:0,y:-1};nextDirection={x:0,y:-1}; var r=fpLeft();  tick(); return dirStr(direction); }, '← LEFT'],
+    ['LEFT→DOWN (A)',  function(){ direction={x:-1,y:0};nextDirection={x:-1,y:0}; var r=fpLeft();  tick(); return dirStr(direction); }, '↓ DOWN'],
+    ['DOWN→RIGHT (A)', function(){ direction={x:0,y:1};nextDirection={x:0,y:1}; var r=fpLeft();  tick(); return dirStr(direction); }, '→ RIGHT'],
+    ['RIGHT→DOWN (D)', function(){ direction={x:1,y:0};nextDirection={x:1,y:0}; var r=fpRight(); tick(); return dirStr(direction); }, '↓ DOWN'],
+    ['DOWN→LEFT (D)',  function(){ direction={x:0,y:1};nextDirection={x:0,y:1}; var r=fpRight(); tick(); return dirStr(direction); }, '← LEFT'],
+    ['LEFT→UP (D)',    function(){ direction={x:-1,y:0};nextDirection={x:-1,y:0}; var r=fpRight(); tick(); return dirStr(direction); }, '↑ UP'],
+    ['UP→RIGHT (D)',   function(){ direction={x:0,y:-1};nextDirection={x:0,y:-1}; var r=fpRight(); tick(); return dirStr(direction); }, '→ RIGHT'],
+    ['RIGHT→RIGHT (W)',function(){ direction={x:1,y:0};nextDirection={x:1,y:0}; var r=fpForward(); tick(); return dirStr(direction); }, '→ RIGHT'],
+    ['S blocked',      function(){ direction={x:1,y:0};nextDirection={x:1,y:0}; var r=fpBackward(); return r; }, 'BLOCKED'],
+];
+
+var p=0,f=0;
+tests.forEach(function(t){
+    var r=t[1]();
+    if(r===t[2]){p++;log.textContent+='✓ '+t[0]+'\n';}
+    else{f++;log.textContent+='✗ '+t[0]+' → got:'+r+' expected:'+t[2]+'\n';}
+});
+log.textContent += '\n' + p + '/' + (p+f) + ' passed\n\n=== Manual Test (switch to FP mode with V, then press WASD) ===\n';
+
+// Reset for manual test
+direction = { x: 1, y: 0 }; nextDirection = { x: 1, y: 0 };
+updateDisplay();
+
+// Keyboard input
+document.addEventListener('keydown', function(e) {
+    e.preventDefault();
+    if (e.key === 'v' || e.key === 'V') handleKey('camera');
+    else handleKey(e.key);
+});
+
+// Buttons
+document.getElementById('btnW').addEventListener('click', function(){ handleKey('w'); });
+document.getElementById('btnA').addEventListener('click', function(){ handleKey('a'); });
+document.getElementById('btnD').addEventListener('click', function(){ handleKey('d'); });
+document.getElementById('btnS').addEventListener('click', function(){ handleKey('s'); });
+document.getElementById('btnV').addEventListener('click', function(){ handleKey('camera'); });
+</script>
+</body></html>

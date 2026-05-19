@@ -1,4 +1,4 @@
-// ── SNAKE.scene — 水墨画风 Three.js 渲染 ──────────
+﻿// ── SNAKE.scene — 水墨画风 Three.js 渲染 ──────────
 SNAKE.scene = {};
 
 (function(sc) {
@@ -10,6 +10,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0xF5F0E8);
+
+// Attach canvas to DOM
+document.getElementById('game3d').appendChild(renderer.domElement);
+
 
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0xF5F0E8);
